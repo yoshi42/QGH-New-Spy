@@ -16,7 +16,7 @@ void setup() {
 
 void loop()
 {
-	digitalWrite(SerialTxControl, LOW); //rx - custom mode
+	//digitalWrite(SerialTxControl, LOW); //rx - custom mode
 	for(int i = 3; i <= 12; i++)
   {
   	if(digitalRead(i) == LOW)
