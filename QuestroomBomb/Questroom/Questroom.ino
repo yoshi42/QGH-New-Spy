@@ -12,7 +12,7 @@ byte aDataPin = 4;  // The pin number of the data pin.
 
 byte muxA = 14;
 byte muxB = 16;
-byte muxC = 10;
+byte muxC = 10; 
 byte muxOut = 5;
 
 byte load1 = 7;
@@ -141,7 +141,6 @@ void correctAnswer()
 		delay(5);
 	}
 	
-
   audio.asyncPlayVoice(0);//play audio tone
   for(int i = 0;i<4;i++)
   {
@@ -154,6 +153,8 @@ void correctAnswer()
     displayArray[i]=numArray[password[i]];
   }
   updateDisplay();
+  digitalWrite(load2,HIGH);
+
   while (1)
   {
     digitalWrite(sOE,LOW);
@@ -177,9 +178,6 @@ void incorrectAnswer()
   while(1)
   {
     digitalWrite(load1,HIGH);
-    delay(2000);
-    digitalWrite(load1,LOW);
-    delay(2000);
   }
 }
 

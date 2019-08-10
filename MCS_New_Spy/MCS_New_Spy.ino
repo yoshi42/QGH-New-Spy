@@ -54,19 +54,22 @@ Power supply is impulse 220-12V 10A
 #define B_8_laser_aims1 A7 //blue - sig, brown - gnd; //WAIT == 85, WORK <= 30
 #define B_9_exit_button A8 //blue - sig, brown - gnd // WORK == LOW state
 #define B_10_panel_wires4 A9 //empty
-#define B_11_red_but A10 //blue - sig, brown - gnd // WORK == LOW state
+#define B_11_red_but A10 //blue - sig, brown - gnd // WORK == LOW state //!!!!!!!! change button to NO
 #define B_12_laser_aims2 A11 //orange - sig, green - gnd; //WAIT == 95, WORK <= 30
 #define B_13_nude_wires A12 //green - sig, blue - gnd   //WAIT == 1000, WORK <= 900                 one is ground, other is analog input
-#define B_14_bomb_ok A13 //                     from bomb
+#define B_14_bomb_ok A13 // blue-sig, brown - gnd                    from bomb
 #define B_15_reset_but A14//green // WORK == LOW state
-#define B_16_bomb_not_ok A15
+#define B_16_bomb_not_ok A15 // green - sig, brown - gnd;
 
 //pwm outputss
-#define U_0 3
-#define U_1_bomb_start 4
-#define U_2_bomb_reset 5
+#define U_0_bomb_start 3 //orange - sig, brown - gnd; work == LOW state
+#define U_1_bomb_reset 4 //orangewhite - sig, brown - gnd; work == LOW state
+#define U_2 5
 #define U_3 6
 #define U_4 7
+
+bool was_red_but_pressed = false;
+bool is_bomb_explosed = false;
 
 void setup()
 {
@@ -141,12 +144,12 @@ void setup()
   digitalWrite(S_7_light, HIGH); //LOW-level trigger
   digitalWrite(S_8_light, HIGH); //LOW-level trigger
 
-  pinMode(U_1_bomb_start, OUTPUT);
-  pinMode(U_2_bomb_reset, OUTPUT);
+  pinMode(U_0_bomb_start, OUTPUT);
+  pinMode(U_1_bomb_reset, OUTPUT);
   pinMode(U_3, OUTPUT);
   pinMode(U_4, OUTPUT);
-  digitalWrite(U_1_bomb_start, HIGH);
-  digitalWrite(U_2_bomb_reset, HIGH);
+  digitalWrite(U_0_bomb_start, HIGH);
+  digitalWrite(U_1_bomb_reset, HIGH);
   digitalWrite(U_3, LOW);
   digitalWrite(U_4, LOW);
 
@@ -157,18 +160,20 @@ void setup()
 void loop()
 {
   //check_all_dev();
-  //read_all_but();
+  read_all_but();
 
   if(digitalRead(B_1_start_but) == LOW)
   {
     delay(100);
-    digitalWrite(U_1_bomb_start, HIGH); //start a bomb timer
+    digitalWrite(U_0_bomb_start, LOW); //start a bomb timer
+    delay(500);
+    digitalWrite(U_0_bomb_start, HIGH);
     mp3_set_serial(Serial1);
     mp3_set_volume(20);
     mp3_play(1);
   }
 
-  if(analogRead(B_2_eyes_sens1 <= 300) && analogRead(B_3_eyes_sens2 <= 300))
+  if(analogRead(B_2_eyes_sens1) <= 300 && analogRead(B_3_eyes_sens2) <= 300)
   {
     delay(100);
     digitalWrite(M_1_LED_table_map, HIGH);
@@ -186,14 +191,14 @@ void loop()
   if(digitalRead(B_5_tumblers1) == LOW)
   {
     delay(100);
-    digitalWrite(M_4_EML_door1, LOW);
+    digitalWrite(M_4_EML_door1, HIGH);
   }
 
   //tumblers are done
   if(digitalRead(B_6_tumblers2) == LOW)
   {
     delay(100);
-    digitalWrite(M_5_EML_box_wires, LOW);
+    digitalWrite(M_5_EML_box_wires, HIGH);
   }
 
   //all 4 panel wires at a right places
@@ -205,48 +210,51 @@ void loop()
   }
 
   //red button is pressed
-  if(digitalRead(B_11_red_but) == LOW)
+  if(digitalRead(B_11_red_but) == LOW && was_red_but_pressed == false)
   {
     delay(100);
     digitalWrite(S_1_light_main_1, LOW);
     digitalWrite(S_2_light_main_2, LOW);
     digitalWrite(S_3_projector, LOW);
     digitalWrite(M_6_LED_UV_dance_humans, HIGH);
+    was_red_but_pressed = true;
   }
 
   //red button is released
-  else if(digitalRead(B_11_red_but) == HIGH) 
+  else if(digitalRead(B_11_red_but) == HIGH && was_red_but_pressed == true) 
   {
     delay(100);
     digitalWrite(S_1_light_main_1, HIGH);
     digitalWrite(S_2_light_main_2, HIGH);
     digitalWrite(M_6_LED_UV_dance_humans, LOW);
+    was_red_but_pressed = false;
   }
 
   //laser aims is shouted by lasers
-  if(analogRead(B_8_laser_aims1) <= 500 && analogRead(B_12_laser_aims2) <= 500)
+  if(analogRead(B_8_laser_aims1) <= 30 && analogRead(B_12_laser_aims2) <= 30)
   {
-    delay(100);
+    delay(30);
     digitalWrite(M_7_EML_nude_wires, LOW);
     digitalWrite(S_4_red_light, HIGH);
   }
 
   //circle is shorted by human body
-  if(analogRead(B_13_nude_wires) <= 300)
+  if(analogRead(B_13_nude_wires) <= 900)
   {
     delay(100);
     digitalWrite(M_8_EML_bomb_box, LOW);
   }
 
   //right wire is cutted
-  if(digitalRead(B_14_bomb_ok)) //signal from bomb, that's all right
+  if(digitalRead(B_14_bomb_ok) == LOW) //signal from bomb, that's all right
   {
-    digitalWrite(S_4_red_light, LOW);
+    //add color_lamp_effect
+    digitalWrite(S_4_red_light, HIGH);
     digitalWrite(M_9_EML_door2, LOW);
   }
 
   //wrong wire is cutted
-  if(digitalRead(B_16_bomb_not_ok) == LOW)
+  if(analogRead(B_16_bomb_not_ok) <= 300 && is_bomb_explosed == false)
   {
     delay(100);
     mp3_set_serial(Serial1);
@@ -255,6 +263,8 @@ void loop()
 
     digitalWrite(M_10_EML_exit_door1, LOW); //open exit door1
     digitalWrite(M_11_EML_exit_door2, LOW); //open exit door2
+    is_bomb_explosed == true;
+
   }
 
   //exit button is pressed
@@ -383,6 +393,8 @@ void check_all_dev ()
 
 void reset_state()
 {
+  is_bomb_explosed = false;
+
   digitalWrite(M_1_LED_table_map, LOW);
   digitalWrite(M_2_EML_tumbler1, LOW);
   digitalWrite(M_3_EML_tumbler2, LOW);
@@ -409,9 +421,18 @@ void reset_state()
   digitalWrite(M_11_EML_exit_door2, HIGH);
   digitalWrite(M_12, HIGH);
 
-  digitalWrite(U_2_bomb_reset, LOW);
+  digitalWrite(U_1_bomb_reset, LOW);
   delay(500);
-  digitalWrite(U_2_bomb_reset, HIGH);
+  digitalWrite(U_1_bomb_reset, HIGH);
+
+  digitalWrite(S_1_light_main_1, HIGH);
+  digitalWrite(S_2_light_main_2, HIGH);
+  digitalWrite(S_3_projector, LOW);
+  digitalWrite(S_4_red_light, LOW);
+  digitalWrite(S_5_light, HIGH); //LOW-level trigger
+  digitalWrite(S_6_light, HIGH); //LOW-level trigger
+  digitalWrite(S_7_light, HIGH); //LOW-level trigger
+  digitalWrite(S_8_light, HIGH); //LOW-level trigger
 }
 /*
 Питання по алгоритму Нового Шпіона:
