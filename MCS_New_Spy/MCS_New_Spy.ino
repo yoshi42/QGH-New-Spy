@@ -18,7 +18,7 @@ Power supply is impulse 220-12V 10A
 
 //12V DC N-channel MOSFETs
 #define M_1_LED_table_map 41 //orange+ brown- wire
-#define M_2_EML_tumbler1 39 //orange+ brown- wire
+#define M_2_EML_tumbler1 39 //orange+ brown- wire //HIGH for a 1 sec is opened then make LOW
 #define M_3_EML_tumbler2 37 //orange+ brown- wire
 #define M_4_EML_door1 35
 
@@ -38,10 +38,10 @@ Power supply is impulse 220-12V 10A
 #define S_3_projector 49
 #define S_4_red_light 47
 
-#define S_5_light 22
-#define S_6_light 24
-#define S_7_light 26
-#define S_8_light 28
+#define S_5_green_light 22
+#define S_6_white_light 24
+#define S_7_yellow_light 26
+#define S_8_blue_light 28
 
 //analog inputs from sensors
 #define B_1_start_but A0 //blue // WORK == LOW state
@@ -64,12 +64,40 @@ Power supply is impulse 220-12V 10A
 //pwm outputss
 #define U_0_bomb_start 3 //orange - sig, brown - gnd; work == LOW state
 #define U_1_bomb_reset 4 //orangewhite - sig, brown - gnd; work == LOW state
-#define U_2 5
-#define U_3 6
+#define U_2_tumbl1_led 5 //blue - gnd, green-white - sig
+#define U_3_tumbl2_led 6 //blue - gnd, green-white - sig
 #define U_4 7
 
 bool was_red_but_pressed = false;
 bool is_bomb_explosed = false;
+bool is_wars_right = false;
+bool is_wires_right = false;
+bool is_final_but_pressed = false;
+
+String string_reply; //variable to store card uids
+
+//Card uids
+String A_1 = "1#"; //start button
+String A_2 = "2#"; //eyes sens -> map_led
+String A_3 = "3#";
+String A_4 = "4#";
+String A_5 = "5#";
+String A_6 = "6#"; //reset_button
+String A_7 = "7#";
+String A_8 = "8#";
+String A_9 = "9#";
+String A_10 = "10#";
+
+bool a_1_start_flag = false;
+bool a_2_flag = false; 
+bool a_3_flag = false;
+bool a_4_flag = false;
+bool a_5_flag = false;
+bool a_6_reset_flag = false;
+bool a_7_flag = false;
+bool a_8_flag = false;
+bool a_9_flag = false;
+bool a_10_flag = false;
 
 void setup()
 {
@@ -117,95 +145,146 @@ void setup()
   digitalWrite(M_1_LED_table_map, LOW);
   digitalWrite(M_2_EML_tumbler1, LOW);
   digitalWrite(M_3_EML_tumbler2, LOW);
-  digitalWrite(M_4_EML_door1, LOW);
-  digitalWrite(M_5_EML_box_wires, LOW);
+  digitalWrite(M_4_EML_door1, HIGH);
+  digitalWrite(M_5_EML_box_wires, HIGH);
   digitalWrite(M_6_LED_UV_dance_humans, LOW);
-  digitalWrite(M_7_EML_nude_wires, LOW);
-  digitalWrite(M_8_EML_bomb_box, LOW);
-  digitalWrite(M_9_EML_door2, LOW);
-  digitalWrite(M_10_EML_exit_door1, LOW);
-  digitalWrite(M_11_EML_exit_door2, LOW);
+  digitalWrite(M_7_EML_nude_wires, HIGH);
+  digitalWrite(M_8_EML_bomb_box, HIGH);
+  digitalWrite(M_9_EML_door2, HIGH);
+  digitalWrite(M_10_EML_exit_door1, HIGH);
+  digitalWrite(M_11_EML_exit_door2, HIGH);
   digitalWrite(M_12, LOW);
 
   pinMode(S_1_light_main_1, OUTPUT);
   pinMode(S_2_light_main_2, OUTPUT);
   pinMode(S_3_projector, OUTPUT);
   pinMode(S_4_red_light, OUTPUT);
-  pinMode(S_5_light, OUTPUT);
-  pinMode(S_6_light, OUTPUT);
-  pinMode(S_7_light, OUTPUT);
-  pinMode(S_8_light, OUTPUT);
+  pinMode(S_5_green_light, OUTPUT);
+  pinMode(S_6_white_light, OUTPUT);
+  pinMode(S_7_yellow_light, OUTPUT);
+  pinMode(S_8_blue_light, OUTPUT);
   digitalWrite(S_1_light_main_1, HIGH);
   digitalWrite(S_2_light_main_2, HIGH);
   digitalWrite(S_3_projector, LOW);
   digitalWrite(S_4_red_light, LOW);
-  digitalWrite(S_5_light, HIGH); //LOW-level trigger
-  digitalWrite(S_6_light, HIGH); //LOW-level trigger
-  digitalWrite(S_7_light, HIGH); //LOW-level trigger
-  digitalWrite(S_8_light, HIGH); //LOW-level trigger
+  digitalWrite(S_5_green_light, HIGH); //LOW-level trigger
+  digitalWrite(S_6_white_light, HIGH); //LOW-level trigger
+  digitalWrite(S_7_yellow_light, HIGH); //LOW-level trigger
+  digitalWrite(S_8_blue_light, HIGH); //LOW-level trigger
 
   pinMode(U_0_bomb_start, OUTPUT);
   pinMode(U_1_bomb_reset, OUTPUT);
-  pinMode(U_3, OUTPUT);
+  pinMode(U_2_tumbl1_led, OUTPUT);
+  pinMode(U_3_tumbl2_led, OUTPUT);
   pinMode(U_4, OUTPUT);
   digitalWrite(U_0_bomb_start, HIGH);
   digitalWrite(U_1_bomb_reset, HIGH);
-  digitalWrite(U_3, LOW);
+  digitalWrite(U_2_tumbl1_led, LOW);
+  digitalWrite(U_3_tumbl2_led, LOW);
   digitalWrite(U_4, LOW);
 
   reset_state(); //reset timer and all locks
   Serial.println("MCS_New_Spy v1.0 has been started");
+  //check_SSR();
 }
 
 void loop()
 {
-  read_all_but();
+  //read_all_but();
 
-  if(digitalRead(B_1_start_but) == LOW)
+  if (Serial2.available()) 
+  {
+    string_reply = "";
+    rs485_recieve();
+  }
+
+  if(digitalRead(B_1_start_but) == LOW || a_1_start_flag == true)
   {
     delay(100);
     digitalWrite(U_0_bomb_start, LOW); //start a bomb timer
     delay(500);
     digitalWrite(U_0_bomb_start, HIGH);
     mp3_set_serial(Serial1);
-    mp3_set_volume(20);
+    mp3_set_volume(25);
     mp3_play(1);
+    a_1_start_flag = false;
   }
 
-  if(analogRead(B_2_eyes_sens1) <= 300 && analogRead(B_3_eyes_sens2) <= 300)
+  if((analogRead(B_2_eyes_sens1) <= 300 && analogRead(B_3_eyes_sens2) <= 300) || a_2_flag == true)
   {
     delay(100);
     digitalWrite(M_1_LED_table_map, HIGH);
+    a_2_flag = false;
   }
 
-  if(digitalRead(B_4_GK_wars) == LOW)
+  if(digitalRead(B_4_GK_wars) == LOW && is_wars_right == false)
   {
     delay(100);
     digitalWrite(M_1_LED_table_map, LOW);
+    digitalWrite(M_2_EML_tumbler1, HIGH);
+    digitalWrite(M_3_EML_tumbler2, HIGH);
+    delay(500);
     digitalWrite(M_2_EML_tumbler1, LOW);
     digitalWrite(M_3_EML_tumbler2, LOW);
+    is_wars_right = true;
+  }
+  if(digitalRead(B_4_GK_wars) == HIGH)
+  {
+    is_wars_right = false;
   }
 
   //tumblers are done
   if(digitalRead(B_5_tumblers1) == LOW)
   {
     delay(100);
-    digitalWrite(M_4_EML_door1, HIGH);
+    digitalWrite(U_2_tumbl1_led, HIGH);
+  }
+  else
+  {
+    delay(100);
+    digitalWrite(U_2_tumbl1_led, LOW);
   }
 
   //tumblers are done
   if(digitalRead(B_6_tumblers2) == LOW)
   {
     delay(100);
+    digitalWrite(U_3_tumbl2_led, HIGH);
+  }
+  else
+  {
+    delay(100);
+    digitalWrite(U_3_tumbl2_led, LOW);
+  }
+
+  if(digitalRead(B_5_tumblers1) == LOW && digitalRead(B_6_tumblers2) == LOW)
+  {
+    delay(100);
+    digitalWrite(M_5_EML_box_wires, LOW);
+    digitalWrite(M_9_EML_door2, LOW);
+  }
+  else if(digitalRead(B_5_tumblers1) == HIGH || digitalRead(B_6_tumblers2) == HIGH)
+  {
+    delay(100);
     digitalWrite(M_5_EML_box_wires, HIGH);
+    digitalWrite(M_9_EML_door2, HIGH);
   }
 
   //all 4 panel wires at a right places
-  if(digitalRead(B_7_panel_wires1) == LOW)
+  if(digitalRead(B_7_panel_wires1) == LOW && is_wires_right == false)
   {
     delay(100);
-    digitalWrite(S_1_light_main_1, LOW);
+    digitalWrite(S_2_light_main_2, LOW);
     digitalWrite(S_3_projector, HIGH);
+    is_wires_right = true;
+  }
+
+  else if(digitalRead(B_7_panel_wires1) == HIGH && is_wires_right == true)
+  {
+    delay(100);
+    digitalWrite(S_2_light_main_2, HIGH);
+    digitalWrite(S_3_projector, LOW);
+    is_wires_right = false;
   }
 
   //red button is pressed
@@ -234,7 +313,43 @@ void loop()
   {
     delay(30);
     digitalWrite(M_7_EML_nude_wires, LOW);
-    digitalWrite(S_4_red_light, HIGH);
+
+    for(int i=0;i<=2;i++)
+    {
+      digitalWrite(S_4_red_light, HIGH);
+      delay(200);
+      digitalWrite(S_4_red_light, LOW);
+      delay(200);
+      digitalWrite(S_5_green_light, LOW);
+      delay(200);
+      digitalWrite(S_5_green_light, HIGH);
+      delay(200);
+      digitalWrite(S_7_yellow_light, LOW);
+      delay(200);
+      digitalWrite(S_7_yellow_light, HIGH);
+      delay(200);
+      digitalWrite(S_4_red_light, HIGH);
+      digitalWrite(S_5_green_light, LOW);
+      delay(200);
+      digitalWrite(S_4_red_light, LOW);
+      digitalWrite(S_5_green_light, HIGH);
+      delay(200);
+      digitalWrite(S_7_yellow_light, LOW);
+      delay(200);
+      digitalWrite(S_7_yellow_light, HIGH);
+      delay(200);
+      digitalWrite(S_5_green_light, LOW);
+      delay(200);
+      digitalWrite(S_5_green_light, HIGH);
+      delay(200);
+      digitalWrite(S_8_blue_light, LOW);
+      delay(200);
+      digitalWrite(S_8_blue_light, HIGH);
+    }
+    delay(200);
+    digitalWrite(S_7_yellow_light, LOW);//turn on and still
+    delay(200);
+    digitalWrite(S_4_red_light, HIGH);//turn on and still
   }
 
   //circle is shorted by human body
@@ -243,13 +358,16 @@ void loop()
     delay(100);
     digitalWrite(M_8_EML_bomb_box, LOW);
   }
+  else if(analogRead(B_13_nude_wires) >= 900)
+  {
+    delay(100);
+    digitalWrite(M_8_EML_bomb_box, HIGH);
+  }
 
   //right wire is cutted
   if(digitalRead(B_14_bomb_ok) == LOW) //signal from bomb, that's all right
   {
-    //add color_lamp_effect
-    digitalWrite(S_4_red_light, HIGH);
-    digitalWrite(M_9_EML_door2, LOW);
+    //nothing happens
   }
 
   //wrong wire is cutted
@@ -262,12 +380,11 @@ void loop()
 
     digitalWrite(M_10_EML_exit_door1, LOW); //open exit door1
     digitalWrite(M_11_EML_exit_door2, LOW); //open exit door2
-    is_bomb_explosed == true;
-
+    is_bomb_explosed = true;
   }
 
   //exit button is pressed
-  if(digitalRead(B_9_exit_button) == LOW)
+  if(digitalRead(B_9_exit_button) == LOW && is_final_but_pressed == false)
   {
     delay(100);
     mp3_set_serial(Serial1);
@@ -276,18 +393,145 @@ void loop()
 
     digitalWrite(M_10_EML_exit_door1, LOW); //open exit door1
     digitalWrite(M_11_EML_exit_door2, LOW); //open exit door2
+    is_final_but_pressed = true;
+  }
+  else if (digitalRead(B_9_exit_button) == HIGH && is_final_but_pressed == true)
+  {
+    is_final_but_pressed = false;
   }
 
-  if(digitalRead(B_15_reset_but) == LOW)
+  if(digitalRead(B_15_reset_but) == LOW || a_6_reset_flag == true)
   {
     delay(100);
     mp3_set_serial(Serial1);
     mp3_stop(); // stop any track playing after controller reset 
     mp3_set_volume(0); //just for sure, that music isn't plays
     reset_state();
+    a_6_reset_flag = false;
   }
 }
 
+void rs485_recieve() 
+{              //recieve something from rs485 inerface
+  digitalWrite(rs485_direction_pin, LOW);
+  while (Serial2.available())
+  {
+    char inChar = Serial2.read();
+    string_reply += inChar;
+    if (inChar == '#')
+    {
+      Serial.println(string_reply);
+      if (string_reply.equals(A_1))
+      {
+        a_1_start_flag = true;
+      }
+
+      if (string_reply.equals(A_2))
+      {
+        a_2_flag = true;
+      }
+
+      if (string_reply.equals(A_3))
+      {
+        a_3_flag = true;
+      }
+
+      if (string_reply.equals(A_4))
+      {
+        a_4_flag = true;
+      }
+
+      if (string_reply.equals(A_5))
+      {
+        a_5_flag = true;
+      }
+
+      if (string_reply.equals(A_6))
+      {
+        a_6_reset_flag = true;
+      }
+
+      if (string_reply.equals(A_7))
+      {
+        a_7_flag = true;
+      }
+
+      if (string_reply.equals(A_8))
+      {
+        a_8_flag = true;
+      }
+
+      if (string_reply.equals(A_9))
+      {
+        a_9_flag = true;
+      }
+
+      if (string_reply.equals(A_10))
+      {
+        a_10_flag = true;
+      }
+
+    string_reply = "";
+    }
+  }
+}
+
+void reset_state()
+{
+  digitalWrite(rs485_direction_pin, HIGH);
+  Serial2.println("RS485 -> MCS_New_Spy v1.0 has been started"); //print it to rs485 port
+  delay(100);
+  digitalWrite(rs485_direction_pin, LOW);
+
+  was_red_but_pressed = false;
+  is_bomb_explosed = false;
+  is_wars_right = false;
+  is_wires_right = false;
+  is_final_but_pressed = false;
+
+  pinMode(B_5_tumblers1, INPUT_PULLUP);
+  pinMode(B_6_tumblers2, INPUT_PULLUP);
+
+  digitalWrite(M_1_LED_table_map, LOW);
+  digitalWrite(M_2_EML_tumbler1, HIGH);
+  digitalWrite(M_3_EML_tumbler2, HIGH);
+  digitalWrite(M_4_EML_door1, LOW);
+  digitalWrite(M_5_EML_box_wires, LOW);
+  digitalWrite(M_6_LED_UV_dance_humans, LOW);
+  digitalWrite(M_7_EML_nude_wires, LOW);
+  digitalWrite(M_8_EML_bomb_box, LOW);
+  digitalWrite(M_9_EML_door2, LOW);
+  digitalWrite(M_10_EML_exit_door1, LOW);
+  digitalWrite(M_11_EML_exit_door2, LOW);
+  digitalWrite(M_12, LOW);
+  delay(500);
+  digitalWrite(M_1_LED_table_map, LOW);
+  digitalWrite(M_2_EML_tumbler1, LOW);
+  digitalWrite(M_3_EML_tumbler2, LOW);
+  digitalWrite(M_4_EML_door1, HIGH);
+  digitalWrite(M_5_EML_box_wires, HIGH);
+  digitalWrite(M_6_LED_UV_dance_humans, LOW);
+  digitalWrite(M_7_EML_nude_wires, HIGH);
+  digitalWrite(M_8_EML_bomb_box, HIGH);
+  digitalWrite(M_9_EML_door2, HIGH);
+  digitalWrite(M_10_EML_exit_door1, HIGH);
+  digitalWrite(M_11_EML_exit_door2, HIGH);
+  digitalWrite(M_12, LOW);
+
+  digitalWrite(U_1_bomb_reset, LOW);
+  delay(500);
+  digitalWrite(U_1_bomb_reset, HIGH);
+
+  digitalWrite(S_1_light_main_1, HIGH);
+  digitalWrite(S_2_light_main_2, HIGH);
+  digitalWrite(S_3_projector, LOW);
+  digitalWrite(S_4_red_light, LOW);
+  digitalWrite(S_5_green_light, HIGH); //LOW-level trigger
+  digitalWrite(S_6_white_light, HIGH); //LOW-level trigger
+  digitalWrite(S_7_yellow_light, HIGH); //LOW-level trigger
+  digitalWrite(S_8_blue_light, HIGH); //LOW-level trigger
+}
+/*
 void read_all_but()
 {
   Serial.print("B1=");
@@ -349,22 +593,6 @@ void check_all_dev ()
   digitalWrite(M_11_EML_exit_door2, HIGH);
   delay(500);
   digitalWrite(M_12, HIGH);
-  delay(500);
-  digitalWrite(S_1_light_main_1, HIGH);
-  delay(500);
-  digitalWrite(S_2_light_main_2, HIGH);
-  delay(500);
-  digitalWrite(S_3_projector, HIGH);
-  delay(500);
-  digitalWrite(S_4_red_light, HIGH);
-  delay(500);
-  digitalWrite(S_5_light, LOW);
-  delay(500);
-  digitalWrite(S_6_light, LOW);
-  delay(500);
-  digitalWrite(S_7_light, LOW);
-  delay(500);
-  digitalWrite(S_8_light, LOW);
   delay(2000);
 
   digitalWrite(M_1_LED_table_map, LOW);
@@ -379,57 +607,35 @@ void check_all_dev ()
   digitalWrite(M_10_EML_exit_door1, LOW);
   digitalWrite(M_11_EML_exit_door2, LOW);
   digitalWrite(M_12, LOW);
+  
+}
 
+void check_SSR()
+{  
+  digitalWrite(S_1_light_main_1, HIGH);
+  delay(500);
+  digitalWrite(S_2_light_main_2, HIGH);
+  delay(500);
+  digitalWrite(S_3_projector, HIGH);
+  delay(500);
+  digitalWrite(S_4_red_light, HIGH);
+  delay(500);
+  digitalWrite(S_5_green_light, LOW);
+  delay(500);
+  digitalWrite(S_6_white_light, LOW);
+  delay(500);
+  digitalWrite(S_7_yellow_light, LOW);
+  delay(500);
+  digitalWrite(S_8_blue_light, LOW);
+
+  delay(2000);
   digitalWrite(S_1_light_main_1, LOW);
   digitalWrite(S_2_light_main_2, LOW);
   digitalWrite(S_3_projector, LOW);
   digitalWrite(S_4_red_light, LOW);
-  digitalWrite(S_5_light, HIGH);
-  digitalWrite(S_6_light, HIGH);
-  digitalWrite(S_7_light, HIGH);
-  digitalWrite(S_8_light, HIGH);
+  digitalWrite(S_5_green_light, HIGH);
+  digitalWrite(S_6_white_light, HIGH);
+  digitalWrite(S_7_yellow_light, HIGH);
+  digitalWrite(S_8_blue_light, HIGH);
 }
-
-void reset_state()
-{
-  is_bomb_explosed = false;
-
-  digitalWrite(M_1_LED_table_map, LOW);
-  digitalWrite(M_2_EML_tumbler1, LOW);
-  digitalWrite(M_3_EML_tumbler2, LOW);
-  digitalWrite(M_4_EML_door1, LOW);
-  digitalWrite(M_5_EML_box_wires, LOW);
-  digitalWrite(M_6_LED_UV_dance_humans, LOW);
-  digitalWrite(M_7_EML_nude_wires, LOW);
-  digitalWrite(M_8_EML_bomb_box, LOW);
-  digitalWrite(M_9_EML_door2, LOW);
-  digitalWrite(M_10_EML_exit_door1, LOW);
-  digitalWrite(M_11_EML_exit_door2, LOW);
-  digitalWrite(M_12, LOW);
-  delay(500);
-  digitalWrite(M_1_LED_table_map, LOW);
-  digitalWrite(M_2_EML_tumbler1, HIGH);
-  digitalWrite(M_3_EML_tumbler2, HIGH);
-  digitalWrite(M_4_EML_door1, HIGH);
-  digitalWrite(M_5_EML_box_wires, HIGH);
-  digitalWrite(M_6_LED_UV_dance_humans, LOW);
-  digitalWrite(M_7_EML_nude_wires, HIGH);
-  digitalWrite(M_8_EML_bomb_box, HIGH);
-  digitalWrite(M_9_EML_door2, HIGH);
-  digitalWrite(M_10_EML_exit_door1, HIGH);
-  digitalWrite(M_11_EML_exit_door2, HIGH);
-  digitalWrite(M_12, HIGH);
-
-  digitalWrite(U_1_bomb_reset, LOW);
-  delay(500);
-  digitalWrite(U_1_bomb_reset, HIGH);
-
-  digitalWrite(S_1_light_main_1, HIGH);
-  digitalWrite(S_2_light_main_2, HIGH);
-  digitalWrite(S_3_projector, LOW);
-  digitalWrite(S_4_red_light, LOW);
-  digitalWrite(S_5_light, HIGH); //LOW-level trigger
-  digitalWrite(S_6_light, HIGH); //LOW-level trigger
-  digitalWrite(S_7_light, HIGH); //LOW-level trigger
-  digitalWrite(S_8_light, HIGH); //LOW-level trigger
-}
+*/
