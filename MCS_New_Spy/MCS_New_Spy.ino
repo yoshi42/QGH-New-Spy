@@ -77,23 +77,23 @@ bool is_final_but_pressed = false;
 String string_reply; //variable to store card uids
 
 //Card uids
-String A_1 = "1#"; //start button
-String A_2 = "2#"; //eyes sens -> map_led
+String A_1 = "1#";
+String A_2 = "2#";
 String A_3 = "3#";
 String A_4 = "4#";
 String A_5 = "5#";
-String A_6 = "6#"; //reset_button
+String A_6 = "6#";
 String A_7 = "7#";
 String A_8 = "8#";
 String A_9 = "9#";
 String A_10 = "10#";
 
-bool a_1_start_flag = false;
-bool a_2_flag = false; 
+bool a_1_start_flag = false; //start button
+bool a_2_flag = false; //eyes sens -> map_led
 bool a_3_flag = false;
 bool a_4_flag = false;
 bool a_5_flag = false;
-bool a_6_reset_flag = false;
+bool a_6_reset_flag = false;  //reset_button
 bool a_7_flag = false;
 bool a_8_flag = false;
 bool a_9_flag = false;
@@ -192,11 +192,14 @@ void loop()
 {
   //read_all_but();
 
-  if (Serial2.available()) 
-  {
-    string_reply = "";
-    rs485_recieve();
-  }
+  digitalWrite(rs485_direction_pin, LOW); //rx
+  delay(50);
+  if(Serial.available()) 
+    {
+      string_reply = "";
+      delay(100);
+      rs485_recieve();
+    }
 
   if(digitalRead(B_1_start_but) == LOW || a_1_start_flag == true)
   {
@@ -412,66 +415,41 @@ void loop()
 }
 
 void rs485_recieve() 
-{              //recieve something from rs485 inerface
-  digitalWrite(rs485_direction_pin, LOW);
-  while (Serial2.available())
+{              
+  //recieve something from rs485 inerface
+  while (Serial.available())
   {
-    char inChar = Serial2.read();
+    char inChar = Serial.read();
     string_reply += inChar;
     if (inChar == '#')
     {
-      Serial.println(string_reply);
-      if (string_reply.equals(A_1))
-      {
-        a_1_start_flag = true;
-      }
+      if (string_reply.equals(A_1)){a_1_start_flag = true;}
 
-      if (string_reply.equals(A_2))
-      {
-        a_2_flag = true;
-      }
+      if (string_reply.equals(A_2)){a_2_flag = true;}
 
-      if (string_reply.equals(A_3))
-      {
-        a_3_flag = true;
-      }
+      if (string_reply.equals(A_3)){a_3_flag = true;}
 
-      if (string_reply.equals(A_4))
-      {
-        a_4_flag = true;
-      }
+      if (string_reply.equals(A_4)){a_4_flag = true;}
 
-      if (string_reply.equals(A_5))
-      {
-        a_5_flag = true;
-      }
+      if (string_reply.equals(A_5)){a_5_flag = true;}
 
-      if (string_reply.equals(A_6))
-      {
-        a_6_reset_flag = true;
-      }
+      if (string_reply.equals(A_6)){a_6_reset_flag = true;}
 
-      if (string_reply.equals(A_7))
-      {
-        a_7_flag = true;
-      }
+      if (string_reply.equals(A_7)){a_7_flag = true;}
 
-      if (string_reply.equals(A_8))
-      {
-        a_8_flag = true;
-      }
+      if (string_reply.equals(A_8)){a_8_flag = true;}
 
-      if (string_reply.equals(A_9))
-      {
-        a_9_flag = true;
-      }
+      if (string_reply.equals(A_9)){a_9_flag = true;}
 
-      if (string_reply.equals(A_10))
-      {
-        a_10_flag = true;
-      }
+      if (string_reply.equals(A_10)){a_10_flag = true;}
 
-    string_reply = "";
+      /*
+      digitalWrite(rs485_direction_pin, HIGH); // tx mode
+      delay(100);
+      Serial.print(string_reply);
+      Serial.println(" - ok");
+      delay(50);*/
+      string_reply = "";
     }
   }
 }
