@@ -13,6 +13,7 @@ Power supply is impulse 220-12V 10A
 */
 
 #include <DFPlayer_Mini_Mp3.h>
+#include <SoftwareSerial.h>
 
 #define rs485_direction_pin 2   //RS485 Direction control
 
@@ -69,6 +70,7 @@ Power supply is impulse 220-12V 10A
 #define U_4 7
 
 bool was_red_but_pressed = false;
+bool is_aims_available = false;
 bool is_bomb_explosed = false;
 bool is_wars_right = false;
 bool is_wires_right = false;
@@ -76,7 +78,7 @@ bool is_final_but_pressed = false;
 
 String string_reply; //variable to store card uids
 
-//Card uids
+//Console commands (buttons 1-10)
 String A_1 = "1#";
 String A_2 = "2#";
 String A_3 = "3#";
@@ -90,14 +92,17 @@ String A_10 = "10#";
 
 bool a_1_start_flag = false; //start button
 bool a_2_flag = false; //eyes sens -> map_led
-bool a_3_flag = false;
-bool a_4_flag = false;
-bool a_5_flag = false;
+bool a_3_flag = false; //GK_wars -> EML_tumblers
+bool a_4_flag = false; //tumblers -> door+panel_wires
+bool a_5_flag = false; //panel wires -> projector
 bool a_6_reset_flag = false;  //reset_button
-bool a_7_flag = false;
-bool a_8_flag = false;
-bool a_9_flag = false;
-bool a_10_flag = false;
+bool a_7_flag = false; //red but
+bool a_8_flag = false; //laser aims
+bool a_9_flag = false; //nude wires
+bool a_10_flag = false; //final but
+
+bool a_5_state = false; // flag to make trigger button
+bool a_7_state = false; // flag to make trigger button
 
 void setup()
 {
@@ -191,10 +196,9 @@ void setup()
 void loop()
 {
   //read_all_but();
-
   digitalWrite(rs485_direction_pin, LOW); //rx
   delay(50);
-  if(Serial.available()) 
+  if(Serial2.available()) 
     {
       string_reply = "";
       delay(100);
@@ -220,7 +224,7 @@ void loop()
     a_2_flag = false;
   }
 
-  if(digitalRead(B_4_GK_wars) == LOW && is_wars_right == false)
+  if((digitalRead(B_4_GK_wars) == LOW && is_wars_right == false) || a_3_flag == true)
   {
     delay(100);
     digitalWrite(M_1_LED_table_map, LOW);
@@ -230,6 +234,7 @@ void loop()
     digitalWrite(M_2_EML_tumbler1, LOW);
     digitalWrite(M_3_EML_tumbler2, LOW);
     is_wars_right = true;
+    a_3_flag = false;
   }
   if(digitalRead(B_4_GK_wars) == HIGH)
   {
@@ -248,7 +253,6 @@ void loop()
     digitalWrite(U_2_tumbl1_led, LOW);
   }
 
-  //tumblers are done
   if(digitalRead(B_6_tumblers2) == LOW)
   {
     delay(100);
@@ -260,11 +264,13 @@ void loop()
     digitalWrite(U_3_tumbl2_led, LOW);
   }
 
-  if(digitalRead(B_5_tumblers1) == LOW && digitalRead(B_6_tumblers2) == LOW)
+  if((digitalRead(B_5_tumblers1) == LOW && digitalRead(B_6_tumblers2) == LOW) || a_4_flag == true)
   {
     delay(100);
     digitalWrite(M_5_EML_box_wires, LOW);
     digitalWrite(M_9_EML_door2, LOW);
+    delay(200);
+    a_4_flag = false;
   }
   else if(digitalRead(B_5_tumblers1) == HIGH || digitalRead(B_6_tumblers2) == HIGH)
   {
@@ -290,6 +296,25 @@ void loop()
     is_wires_right = false;
   }
 
+  //duplicate command to console
+  if(a_5_flag == true && a_5_state == false)
+  {
+    delay(100);
+    digitalWrite(S_2_light_main_2, LOW);
+    digitalWrite(S_3_projector, HIGH);
+    a_5_flag  = false;
+    a_5_state = true;
+  }
+
+  if(a_5_flag == true && a_5_state == true)
+  {
+    delay(100);
+    digitalWrite(S_2_light_main_2, HIGH);
+    digitalWrite(S_3_projector, LOW);
+    a_5_flag  = false;
+    a_5_state = false;
+  }
+
   //red button is pressed
   if(digitalRead(B_11_red_but) == LOW && was_red_but_pressed == false)
   {
@@ -299,6 +324,7 @@ void loop()
     digitalWrite(S_3_projector, LOW);
     digitalWrite(M_6_LED_UV_dance_humans, HIGH);
     was_red_but_pressed = true;
+    is_aims_available = true;
   }
 
   //red button is released
@@ -311,8 +337,32 @@ void loop()
     was_red_but_pressed = false;
   }
 
+    //duplicate command to console
+  if(a_7_flag == true && a_7_state == false)
+  {
+    delay(100);
+    digitalWrite(S_1_light_main_1, LOW);
+    digitalWrite(S_2_light_main_2, LOW);
+    digitalWrite(S_3_projector, LOW);
+    digitalWrite(M_6_LED_UV_dance_humans, HIGH);
+    is_aims_available = true;
+    a_7_flag  = false;
+    a_7_state = true;
+  }
+
+  if(a_7_flag == true && a_7_state == true)
+  {
+    delay(100);
+    digitalWrite(S_1_light_main_1, HIGH);
+    digitalWrite(S_2_light_main_2, HIGH);
+    digitalWrite(M_6_LED_UV_dance_humans, LOW);
+    a_7_flag  = false;
+    a_7_state = false;
+  }
+
+
   //laser aims is shouted by lasers
-  if(analogRead(B_8_laser_aims1) <= 30 && analogRead(B_12_laser_aims2) <= 30)
+  if((is_aims_available == true && analogRead(B_8_laser_aims1) <= 30 && analogRead(B_12_laser_aims2) <= 30) || a_8_flag == true)
   {
     delay(30);
     digitalWrite(M_7_EML_nude_wires, LOW);
@@ -353,13 +403,15 @@ void loop()
     digitalWrite(S_7_yellow_light, LOW);//turn on and still
     delay(200);
     digitalWrite(S_4_red_light, HIGH);//turn on and still
+    a_8_flag = false;
   }
 
   //circle is shorted by human body
-  if(analogRead(B_13_nude_wires) <= 900)
+  if(analogRead(B_13_nude_wires) <= 900 || a_9_flag == true)
   {
     delay(100);
     digitalWrite(M_8_EML_bomb_box, LOW);
+    a_9_flag = false;
   }
   else if(analogRead(B_13_nude_wires) >= 900)
   {
@@ -387,7 +439,7 @@ void loop()
   }
 
   //exit button is pressed
-  if(digitalRead(B_9_exit_button) == LOW && is_final_but_pressed == false)
+  if((digitalRead(B_9_exit_button) == LOW && is_final_but_pressed == false) || a_10_flag == true)
   {
     delay(100);
     mp3_set_serial(Serial1);
@@ -397,6 +449,7 @@ void loop()
     digitalWrite(M_10_EML_exit_door1, LOW); //open exit door1
     digitalWrite(M_11_EML_exit_door2, LOW); //open exit door2
     is_final_but_pressed = true;
+    a_10_flag = false;
   }
   else if (digitalRead(B_9_exit_button) == HIGH && is_final_but_pressed == true)
   {
@@ -417,9 +470,9 @@ void loop()
 void rs485_recieve() 
 {              
   //recieve something from rs485 inerface
-  while (Serial.available())
+  while (Serial2.available())
   {
-    char inChar = Serial.read();
+    char inChar = Serial2.read();
     string_reply += inChar;
     if (inChar == '#')
     {
@@ -442,13 +495,13 @@ void rs485_recieve()
       if (string_reply.equals(A_9)){a_9_flag = true;}
 
       if (string_reply.equals(A_10)){a_10_flag = true;}
-
-      /*
+      /*/
       digitalWrite(rs485_direction_pin, HIGH); // tx mode
       delay(100);
-      Serial.print(string_reply);
-      Serial.println(" - ok");
-      delay(50);*/
+      Serial2.print(string_reply);
+      Serial2.println(" - ok");
+      delay(50); 
+      digitalWrite(rs485_direction_pin, LOW); //*/
       string_reply = "";
     }
   }
@@ -462,10 +515,25 @@ void reset_state()
   digitalWrite(rs485_direction_pin, LOW);
 
   was_red_but_pressed = false;
+  is_aims_available = false;
   is_bomb_explosed = false;
   is_wars_right = false;
   is_wires_right = false;
   is_final_but_pressed = false;
+
+  a_1_start_flag = false; //start button
+  a_2_flag = false; //eyes sens -> map_led
+  a_3_flag = false; //GK_wars -> EML_tumblers
+  a_4_flag = false; //tumblers -> door+panel_wires
+  a_5_flag = false; //panel wires -> projector
+  a_6_reset_flag = false;  //reset_button
+  a_7_flag = false; //red but
+  a_8_flag = false; //laser aims
+  a_9_flag = false; //nude wires
+  a_10_flag = false; //final but
+
+  a_5_state = false;
+  a_7_state = false;
 
   pinMode(B_5_tumblers1, INPUT_PULLUP);
   pinMode(B_6_tumblers2, INPUT_PULLUP);
