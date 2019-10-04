@@ -201,7 +201,7 @@ void loop()
   if(Serial2.available()) 
     {
       string_reply = "";
-      delay(100);
+      delay(50);
       rs485_recieve();
     }
 
@@ -249,7 +249,7 @@ void loop()
   }
   else
   {
-    delay(100);
+    delay(10);
     digitalWrite(U_2_tumbl1_led, LOW);
   }
 
@@ -260,7 +260,7 @@ void loop()
   }
   else
   {
-    delay(100);
+    delay(10);
     digitalWrite(U_3_tumbl2_led, LOW);
   }
 
@@ -274,7 +274,7 @@ void loop()
   }
   else if(digitalRead(B_5_tumblers1) == HIGH || digitalRead(B_6_tumblers2) == HIGH)
   {
-    delay(100);
+    delay(50);
     digitalWrite(M_5_EML_box_wires, HIGH);
     digitalWrite(M_9_EML_door2, HIGH);
   }
@@ -290,7 +290,7 @@ void loop()
 
   else if(digitalRead(B_7_panel_wires1) == HIGH && is_wires_right == true)
   {
-    delay(100);
+    delay(50);
     digitalWrite(S_2_light_main_2, HIGH);
     digitalWrite(S_3_projector, LOW);
     is_wires_right = false;
@@ -330,7 +330,7 @@ void loop()
   //red button is released
   else if(digitalRead(B_11_red_but) == HIGH && was_red_but_pressed == true) 
   {
-    delay(100);
+    delay(50);
     digitalWrite(S_1_light_main_1, HIGH);
     digitalWrite(S_2_light_main_2, HIGH);
     digitalWrite(M_6_LED_UV_dance_humans, LOW);
@@ -360,13 +360,14 @@ void loop()
     a_7_state = false;
   }
 
-
+  //Serial.println(analogRead(B_8_laser_aims1));
+  //Serial.println(analogRead(B_12_laser_aims2));
   //laser aims is shouted by lasers
-  if((is_aims_available == true && analogRead(B_8_laser_aims1) <= 30 && analogRead(B_12_laser_aims2) <= 30) || a_8_flag == true)
+  if((is_aims_available == true && analogRead(B_8_laser_aims1) <= 50 && analogRead(B_12_laser_aims2) <= 50) || a_8_flag == true)
   {
-    delay(30);
+    delay(20);
     digitalWrite(M_7_EML_nude_wires, LOW);
-
+    Serial.println("Tock");
     for(int i=0;i<=2;i++)
     {
       digitalWrite(S_4_red_light, HIGH);
@@ -415,7 +416,7 @@ void loop()
   }
   else if(analogRead(B_13_nude_wires) >= 900)
   {
-    delay(100);
+    delay(50);
     digitalWrite(M_8_EML_bomb_box, HIGH);
   }
 
